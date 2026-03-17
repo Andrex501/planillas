@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Rutas 2026</title>
+    
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #0f172a;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: var(--card);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        h2 { text-align: center; font-size: 1.5rem; margin-bottom: 20px; }
+
+        /* Controles Adaptables */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        @media (min-width: 640px) {
+            .controls { flex-direction: row; align-items: center; }
+        }
+
+        input[type="file"] {
+            font-size: 14px;
+            width: 100%;
+        }
+
+        input[type="text"] {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px; /* Evita zoom automático en iOS */
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Pestañas Responsive */
+        .tabs-container {
+            display: flex;
+            gap: 5px;
+            overflow-x: auto;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 0;
+            margin-bottom: 10px;
+            -webkit-overflow-scrolling: touch; /* Scroll suave en móvil */
+        }
+
+        .tabs-container::-webkit-scrollbar { height: 4px; }
+
+        .tab-button {
+            padding: 10px 15px;
+            cursor: pointer;
+            border: 1px solid #e2e8f0;
+            border-bottom: none;
+            background: #f8fafc;
+            border-radius: 8px 8px 0 0;
+            white-space: nowrap;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .tab-button.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Tabla Responsive */
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 0 0 8px 8px;
+            max-height: 70vh;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            background: #f8fafc;
+            position: sticky;
+            top: 0;
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 2px solid #e2e8f0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #f1f5f9;
+            white-space: nowrap;
+        }
+
+        tr:nth-child(even) { background: #fdfdfd; }
+
+        #result-count {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        /* Botón para limpiar cache */
+        .clear-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Rutas Escolares 2026</h2>
+        
+        <div class="controls">
+            <input type="file" id="upload" accept=".xlsx, .xls">
+            <input type="text" id="search" placeholder="🔍 Buscar nombre o documento..." disabled>
+        </div>
+
+        <div style="display: flex; align-items: center;">
+            <div id="result-count">Cargue un archivo para empezar</div>
+            <button class="clear-btn" onclick="clearCache()" id="btn-clear" style="display:none;">Borrar Datos</button>
+        </div>
+
+        <div id="tabs-container" class="tabs-container"></div>
+
+        <div class="table-wrapper">
+            <table id="data-table">
+                <thead><tr id="table-header"></tr></thead>
+                <tbody id="table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let fullData = {};
+        let currentSheet = "";
+
+        // Al cargar la página, revisar si hay datos en Cache
+        window.onload = () => {
+            const savedData = localStorage.getItem('rutas_data');
+            if (savedData) {
+                fullData = JSON.parse(savedData);
+                initInterface();
+            }
+        };
+
+        document.getElementById('upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                fullData = {};
+                workbook.SheetNames.forEach(name => {
+                    const ws = workbook.Sheets[name];
+                    const json = XLSX.utils.sheet_to_json(ws, { range: 2 });
+                    if (json.length > 0) fullData[name] = json;
+                });
+
+                // Guardar en Cache (localStorage)
+                localStorage.setItem('rutas_data', JSON.stringify(fullData));
+                initInterface();
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function initInterface() {
+            const tabsContainer = document.getElementById('tabs-container');
+            tabsContainer.innerHTML = '';
+            const sheetNames = Object.keys(fullData);
+
+            sheetNames.forEach((name, index) => {
+                const btn = document.createElement('button');
+                btn.classList.add('tab-button');
+                if (index === 0) {
+                    btn.classList.add('active');
+                    currentSheet = name;
+                }
+                btn.innerText = name;
+                btn.onclick = () => switchTab(name, btn);
+                tabsContainer.appendChild(btn);
+            });
+
+            document.getElementById('search').disabled = false;
+            document.getElementById('btn-clear').style.display = 'block';
+            renderTable();
+        }
+
+        function switchTab(name, btn) {
+            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentSheet = name;
+            document.getElementById('search').value = '';
+            renderTable();
+        }
+
+        function renderTable(dataToRender = null) {
+            const data = dataToRender || fullData[currentSheet];
+            const headerRow = document.getElementById('table-header');
+            const body = document.getElementById('table-body');
+            const countLabel = document.getElementById('result-count');
+
+            headerRow.innerHTML = '';
+            body.innerHTML = '';
+
+            if (!data || data.length === 0) return;
+
+            const cols = Object.keys(data[0]);
+            cols.forEach(c => {
+                const th = document.createElement('th');
+                th.innerText = c;
+                headerRow.appendChild(th);
+            });
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                cols.forEach(c => {
+                    const td = document.createElement('td');
+                    td.innerText = row[c] || "";
+                    tr.appendChild(td);
+                });
+                body.appendChild(tr);
+            });
+
+            countLabel.innerText = `${currentSheet}: ${data.length} personas`;
+        }
+
+        document.getElementById('search').addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            const filtered = fullData[currentSheet].filter(row => 
+                Object.values(row).some(v => String(v).toLowerCase().includes(term))
+            );
+            renderTable(filtered);
+        });
+
+        function clearCache() {
+            if (confirm("¿Deseas borrar los datos guardados?")) {
+                localStorage.removeItem('rutas_data');
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
