@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Control de Asistencia Pro 2026</title>
+    <title>Asistencia Rutas 2026</title>
     
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -14,85 +14,129 @@
             --primary: #2563eb;
             --success: #10b981;
             --danger: #ef4444;
-            --bg: #f1f5f9;
+            --bg: #f8fafc;
             --card: #ffffff;
-            --text: #0f172a;
+            --text: #1e293b;
         }
 
         body {
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: -apple-system, system-ui, sans-serif;
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
             padding: 10px;
-            overscroll-behavior: none;
         }
 
         .container {
             width: 100%;
-            max-width: 1300px;
+            max-width: 1200px;
             margin: auto;
             background: var(--card);
             padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .controls { display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; }
+        
+        input[type="text"] { 
+            padding: 14px; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            width: 100%; 
+            box-sizing: border-box; 
         }
 
         .action-bar {
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 8px;
-            border-left: 5px solid var(--primary);
+            padding: 12px;
+            background: #f1f5f9;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            gap: 10px;
         }
 
         .counter-badge {
             background: var(--primary);
             color: white;
-            padding: 4px 12px;
+            padding: 3px 12px;
             border-radius: 20px;
-            font-size: 1.1rem;
             font-weight: bold;
+            font-size: 14px;
         }
 
-        .controls { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
-        @media (min-width: 640px) { .controls { flex-direction: row; align-items: center; } }
-        
-        input[type="text"] { padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px; flex-grow: 1; }
-        
-        .btn { border: none; padding: 12px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; font-size: 14px; }
+        .btn {
+            border: none;
+            padding: 12px 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.2s;
+        }
+
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-finish { background: var(--success); }
         .btn-pdf { background: #6366f1; }
-        .btn-danger { background: var(--danger); font-size: 11px; padding: 5px 10px; }
+        .btn-danger { background: var(--danger); font-size: 12px; padding: 8px 12px; }
+
+        .tabs-container {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+
+        .tab-button {
+            padding: 10px 18px;
+            cursor: pointer;
+            border: 1px solid #e2e8f0;
+            background: white;
+            border-radius: 25px;
+            white-space: nowrap;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .tab-button.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 50vh;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+        }
+
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th { background: #f8fafc; padding: 12px; text-align: left; font-size: 12px; position: sticky; top: 0; z-index: 5; }
+        td { padding: 14px 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
         
-        .tabs-container { display: flex; gap: 5px; overflow-x: auto; border-bottom: 2px solid var(--primary); margin-bottom: 10px; padding-bottom: 5px; }
-        .tab-button { padding: 10px 15px; cursor: pointer; border: 1px solid #e2e8f0; border-bottom: none; background: #f8fafc; border-radius: 8px 8px 0 0; white-space: nowrap; font-weight: 600; }
-        .tab-button.active { background: var(--primary); color: white; }
-        
-        .table-wrapper { overflow-x: auto; max-height: 50vh; border: 1px solid #e2e8f0; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; }
-        th { background: #f8fafc; position: sticky; top: 0; z-index: 10; }
-        
-        .check-col { width: 50px; text-align: center; }
-        input[type="checkbox"] { width: 22px; height: 22px; cursor: pointer; }
-        
+        input[type="checkbox"] { width: 26px; height: 26px; cursor: pointer; }
         .present { background-color: #f0fdf4 !important; }
 
-        #history-section { margin-top: 20px; padding-top: 15px; border-top: 2px dashed #e2e8f0; }
-        .history-item { background: #fff; padding: 10px; border: 1px solid #e2e8f0; margin-bottom: 5px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+        .history-item {
+            background: #fff;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2 style="text-align:center; margin: 0 0 15px 0;">Asistencia Rutas 2026</h2>
-        
         <div class="controls">
             <input type="file" id="upload" accept=".xlsx, .xls">
             <input type="text" id="search" placeholder="🔍 Buscar niño o grado..." disabled>
@@ -101,9 +145,9 @@
         <div id="tabs-container" class="tabs-container"></div>
 
         <div class="action-bar">
-            <div>
-                <span id="route-name" style="font-weight:bold;">Cargar Excel</span>
-                <span id="live-counter" class="counter-badge" style="display:none; margin-left:8px;">0/0</span>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+                <span id="route-name" style="font-weight:bold; font-size:14px;">Cargar Excel</span>
+                <span id="live-counter" class="counter-badge" style="display:none;">0/0</span>
             </div>
             <div style="display:flex; gap:8px;">
                 <button class="btn btn-pdf" id="btn-pdf" style="display:none" onclick="generatePDF()">📄 PDF</button>
@@ -118,12 +162,12 @@
             </table>
         </div>
 
-        <div id="history-section">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <strong id="hist-title">Historial (0 registros):</strong>
+        <div id="history-section" style="margin-top:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <strong style="font-size:14px;">Historial de hoy:</strong>
                 <button class="btn btn-danger" onclick="clearAllData()">Limpiar</button>
             </div>
-            <div id="log-list" style="margin-top:10px;"></div>
+            <div id="log-list"></div>
         </div>
     </div>
 
@@ -131,68 +175,48 @@
         const { jsPDF } = window.jspdf;
         let fullData = {};
         let currentSheet = "";
-        // Usamos una clave nueva para evitar conflictos de versiones previas
-        let attendanceHistory = JSON.parse(localStorage.getItem('attendance_history_v5') || "[]");
+        let attendanceHistory = JSON.parse(localStorage.getItem('attendance_history_v8') || "[]");
 
         window.onload = () => {
-            const savedData = localStorage.getItem('rutas_data');
-            if (savedData) {
-                fullData = JSON.parse(savedData);
-                initInterface();
-                renderHistory();
-            }
+            const saved = localStorage.getItem('rutas_data');
+            if (saved) { fullData = JSON.parse(saved); initInterface(); renderHistory(); }
         };
 
         document.getElementById('upload').addEventListener('change', function(e) {
             const file = e.target.files[0];
-            if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    fullData = {};
-                    workbook.SheetNames.forEach(name => {
-                        const json = XLSX.utils.sheet_to_json(workbook.Sheets[name], { range: 2 });
-                        if (json.length > 0) fullData[name] = json;
-                    });
-                    localStorage.setItem('rutas_data', JSON.stringify(fullData));
-                    initInterface();
-                } catch (err) {
-                    alert("Error al leer el Excel. Verifica el formato.");
-                }
+                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                fullData = {};
+                workbook.SheetNames.forEach(n => {
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[n], { range: 2 });
+                    if (json.length > 0) fullData[n] = json;
+                });
+                localStorage.setItem('rutas_data', JSON.stringify(fullData));
+                initInterface();
             };
             reader.readAsArrayBuffer(file);
         });
 
         function initInterface() {
-            const tabsContainer = document.getElementById('tabs-container');
-            tabsContainer.innerHTML = '';
-            const sheets = Object.keys(fullData);
-            if(sheets.length === 0) return;
-
-            sheets.forEach((name, index) => {
-                const btn = document.createElement('button');
-                btn.className = `tab-button ${index === 0 ? 'active' : ''}`;
-                if(index === 0) currentSheet = name;
-                btn.innerText = name;
-                btn.onclick = () => switchTab(name, btn);
-                tabsContainer.appendChild(btn);
+            const container = document.getElementById('tabs-container');
+            container.innerHTML = '';
+            Object.keys(fullData).forEach((n, i) => {
+                const b = document.createElement('button');
+                b.className = `tab-button ${i === 0 ? 'active' : ''}`;
+                if(i === 0) currentSheet = n;
+                b.innerText = n;
+                b.onclick = () => {
+                    document.querySelectorAll('.tab-button').forEach(x => x.classList.remove('active'));
+                    b.classList.add('active');
+                    currentSheet = n;
+                    renderTable();
+                };
+                container.appendChild(b);
             });
-            
             document.getElementById('search').disabled = false;
-            document.getElementById('btn-finish').style.display = 'block';
-            document.getElementById('btn-pdf').style.display = 'block';
-            document.getElementById('live-counter').style.display = 'inline-block';
+            document.querySelectorAll('#btn-finish, #btn-pdf, #live-counter').forEach(el => el.style.display = 'flex');
             renderTable();
-        }
-
-        function switchTab(name, btn) {
-            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentSheet = name;
-            renderTable();
-            document.getElementById('search').value = "";
         }
 
         function updateCounter() {
@@ -204,38 +228,21 @@
 
         function renderTable(dataToRender = null) {
             const data = dataToRender || fullData[currentSheet];
-            const headerRow = document.getElementById('table-header');
+            const header = document.getElementById('table-header');
             const body = document.getElementById('table-body');
-            
-            headerRow.innerHTML = '<th class="check-col">Ok</th>';
+            header.innerHTML = '<th>Ok</th>';
             body.innerHTML = '';
             if (!data || data.length === 0) return;
 
             const cols = Object.keys(data[0]);
-            cols.forEach(c => {
-                const th = document.createElement('th');
-                th.innerText = c;
-                headerRow.appendChild(th);
-            });
+            cols.forEach(c => header.innerHTML += `<th>${c}</th>`);
 
-            data.forEach((row) => {
+            data.forEach(row => {
                 const tr = document.createElement('tr');
-                const tdCheck = document.createElement('td');
-                tdCheck.className = 'check-col';
-                tdCheck.innerHTML = `<input type="checkbox" class="att-check">`;
-                tr.appendChild(tdCheck);
-
-                cols.forEach(c => {
-                    const td = document.createElement('td');
-                    td.innerText = row[c] || "";
-                    tr.appendChild(td);
-                });
-
+                tr.innerHTML = `<td><input type="checkbox" class="att-check"></td>` + 
+                               cols.map(c => `<td>${row[c] || ''}</td>`).join('');
                 tr.onclick = (e) => {
-                    if(e.target.type !== 'checkbox') {
-                        const cb = tr.querySelector('input');
-                        cb.checked = !cb.checked;
-                    }
+                    if(e.target.type !== 'checkbox') tr.querySelector('input').checked = !tr.querySelector('input').checked;
                     tr.classList.toggle('present', tr.querySelector('input').checked);
                     updateCounter();
                 };
@@ -246,104 +253,77 @@
         }
 
         function saveAttendance() {
-            const checkedRows = document.querySelectorAll('#table-body tr.present');
-            
-            // CORRECCIÓN 1: Validar que haya al menos un niño
-            if (checkedRows.length === 0) {
-                alert("⚠️ ERROR: No has marcado a ningún niño. Debe haber al menos 1 asistencia para finalizar.");
-                return;
-            }
+            const checked = document.querySelectorAll('#table-body tr.present');
+            const btn = document.getElementById('btn-finish');
 
-            const asistentes = Array.from(checkedRows).map(tr => JSON.parse(tr.dataset.info));
-            const totalInSheet = fullData[currentSheet].length;
-            const now = new Date();
+            if (checked.length === 0) return alert("Marca al menos un niño.");
             
+            // DESACTIVAR BOTÓN temporalmente para evitar doble envío
+            btn.disabled = true;
+            
+            const now = new Date();
             const session = {
-                id: Date.now(), // ID único para evitar bugs
                 fecha: now.toLocaleDateString(),
-                hora: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                hora: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 ruta: currentSheet,
-                conteo: `${asistentes.length}/${totalInSheet}`,
-                asistentes: asistentes
+                conteo: `${checked.length}/${fullData[currentSheet].length}`,
+                asistentes: Array.from(checked).map(tr => JSON.parse(tr.dataset.info))
             };
 
             attendanceHistory.push(session);
-            localStorage.setItem('attendance_history_v5', JSON.stringify(attendanceHistory));
+            localStorage.setItem('attendance_history_v8', JSON.stringify(attendanceHistory));
             
-            alert(`✅ Guardado Correcto: ${session.conteo} alumnos.`);
+            alert(`✅ Ruta ${currentSheet} guardada con éxito.`);
+            
+            // LIMPIAR TABLA (Remover marcas)
+            renderTable(); // Al re-renderizar la tabla actual, se borran los estados "present"
             renderHistory();
-            
-            // Limpiar selección
-            document.querySelectorAll('.att-check').forEach(c => c.checked = false);
-            document.querySelectorAll('#table-body tr').forEach(tr => tr.classList.remove('present'));
-            updateCounter();
+
+            // REACTIVAR BOTÓN después de un momento
+            setTimeout(() => { btn.disabled = false; }, 2000);
         }
 
         function generatePDF() {
-            if (attendanceHistory.length === 0) {
-                alert("No hay registros para generar PDF.");
-                return;
-            }
-
-            try {
-                // CORRECCIÓN 2: Configuración para evitar bugs en mobile
-                const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            if (attendanceHistory.length === 0) return alert("Sin datos registrados hoy.");
+            const doc = new jsPDF({ orientation: 'landscape' });
+            
+            attendanceHistory.forEach((s, i) => {
+                if (i > 0) doc.addPage();
+                doc.setFontSize(16);
+                doc.setTextColor(37, 99, 235);
+                doc.text(`RUTA: ${s.ruta}`, 14, 15);
+                doc.setFontSize(11);
+                doc.setTextColor(80);
+                doc.text(`FINALIZADO: ${s.fecha} - ${s.hora} | ASISTENCIA: ${s.conteo}`, 14, 22);
                 
-                attendanceHistory.forEach((session, index) => {
-                    if (index > 0) doc.addPage();
-                    
-                    doc.setFontSize(14);
-                    doc.setTextColor(40);
-                    doc.text(`REPORTE: ${session.ruta}`, 14, 15);
-                    doc.setFontSize(10);
-                    doc.text(`Fecha: ${session.fecha} | Hora: ${session.hora} | Asistencia: ${session.conteo}`, 14, 22);
-                    
-                    const columns = Object.keys(session.asistentes[0]);
-                    const rows = session.asistentes.map(a => columns.map(col => String(a[col] || "")));
+                const cols = Object.keys(s.asistentes[0]);
+                const rows = s.asistentes.map(a => cols.map(c => String(a[c] || "")));
 
-                    doc.autoTable({
-                        startY: 28,
-                        head: [columns],
-                        body: rows,
-                        theme: 'grid',
-                        styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak' },
-                        headStyles: { fillStyle: [37, 99, 235], textColor: 255 },
-                        margin: { left: 10, right: 10 }
-                    });
+                doc.autoTable({
+                    startY: 28,
+                    head: [cols],
+                    body: rows,
+                    theme: 'grid',
+                    styles: { fontSize: 7 },
+                    headStyles: { fillStyle: [37, 99, 235] }
                 });
-
-                // Descarga segura
-                doc.save(`Asistencia_Rutas_${Date.now()}.pdf`);
-            } catch (err) {
-                console.error(err);
-                alert("Error generando el PDF. Intenta con menos registros o refresca la página.");
-            }
+            });
+            doc.save(`Reporte_Asistencia_${Date.now()}.pdf`);
         }
 
         function renderHistory() {
-            const container = document.getElementById('log-list');
-            container.innerHTML = '';
-            document.getElementById('hist-title').innerText = `Historial (${attendanceHistory.length} registros):`;
-            
+            const list = document.getElementById('log-list');
+            list.innerHTML = '';
             attendanceHistory.slice().reverse().forEach(s => {
-                const div = document.createElement('div');
-                div.className = 'history-item';
-                div.innerHTML = `
-                    <div>
-                        <strong>${s.ruta}</strong><br>
-                        <small>${s.fecha} - ${s.hora}</small>
-                    </div>
-                    <div style="text-align:right">
-                        <span style="color:var(--primary); font-weight:bold;">${s.conteo}</span>
-                    </div>
-                `;
-                container.appendChild(div);
+                list.innerHTML += `<div class="history-item">
+                    <div><strong>${s.ruta}</strong><br><small>${s.fecha} ${s.hora}</small></div>
+                    <div style="font-weight:bold; color:var(--primary)">${s.conteo}</div>
+                </div>`;
             });
         }
 
         document.getElementById('search').addEventListener('input', function(e) {
             const term = e.target.value.toLowerCase();
-            if(!fullData[currentSheet]) return;
             const filtered = fullData[currentSheet].filter(row => 
                 Object.values(row).some(v => String(v).toLowerCase().includes(term))
             );
@@ -351,8 +331,8 @@
         });
 
         function clearAllData() {
-            if(confirm("¿Borrar todos los registros guardados?")) {
-                localStorage.removeItem('attendance_history_v5');
+            if(confirm("¿Estás seguro de borrar todo el historial guardado?")) {
+                localStorage.removeItem('attendance_history_v8');
                 attendanceHistory = [];
                 renderHistory();
             }
