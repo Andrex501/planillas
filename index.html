@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Control de Asistencia Pro 2026</title>
     
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
@@ -25,6 +25,7 @@
             color: var(--text);
             margin: 0;
             padding: 10px;
+            overscroll-behavior: none;
         }
 
         .container {
@@ -59,47 +60,53 @@
             font-weight: bold;
         }
 
-        /* ... (estilos anteriores se mantienen igual) ... */
         .controls { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
         @media (min-width: 640px) { .controls { flex-direction: row; align-items: center; } }
+        
         input[type="text"] { padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px; flex-grow: 1; }
-        .btn { border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
+        
+        .btn { border: none; padding: 12px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; font-size: 14px; }
         .btn-finish { background: var(--success); }
         .btn-pdf { background: #6366f1; }
         .btn-danger { background: var(--danger); font-size: 11px; padding: 5px 10px; }
-        .tabs-container { display: flex; gap: 5px; overflow-x: auto; border-bottom: 2px solid var(--primary); margin-bottom: 10px; }
+        
+        .tabs-container { display: flex; gap: 5px; overflow-x: auto; border-bottom: 2px solid var(--primary); margin-bottom: 10px; padding-bottom: 5px; }
         .tab-button { padding: 10px 15px; cursor: pointer; border: 1px solid #e2e8f0; border-bottom: none; background: #f8fafc; border-radius: 8px 8px 0 0; white-space: nowrap; font-weight: 600; }
         .tab-button.active { background: var(--primary); color: white; }
-        .table-wrapper { overflow-x: auto; max-height: 55vh; border: 1px solid #e2e8f0; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        
+        .table-wrapper { overflow-x: auto; max-height: 50vh; border: 1px solid #e2e8f0; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; }
         th { background: #f8fafc; position: sticky; top: 0; z-index: 10; }
-        .check-col { width: 45px; text-align: center; }
-        input[type="checkbox"] { transform: scale(1.6); cursor: pointer; }
+        
+        .check-col { width: 50px; text-align: center; }
+        input[type="checkbox"] { width: 22px; height: 22px; cursor: pointer; }
+        
         .present { background-color: #f0fdf4 !important; }
+
         #history-section { margin-top: 20px; padding-top: 15px; border-top: 2px dashed #e2e8f0; }
-        .history-item { background: #fff; padding: 8px; border: 1px solid #e2e8f0; margin-bottom: 5px; border-radius: 4px; display: flex; justify-content: space-between; font-size: 12px; }
+        .history-item { background: #fff; padding: 10px; border: 1px solid #e2e8f0; margin-bottom: 5px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2 style="text-align:center; margin-top:0;">Asistencia Rutas Escolares 2026</h2>
+        <h2 style="text-align:center; margin: 0 0 15px 0;">Asistencia Rutas 2026</h2>
         
         <div class="controls">
             <input type="file" id="upload" accept=".xlsx, .xls">
-            <input type="text" id="search" placeholder="🔍 Buscar por nombre, grado o documento..." disabled>
+            <input type="text" id="search" placeholder="🔍 Buscar niño o grado..." disabled>
         </div>
 
         <div id="tabs-container" class="tabs-container"></div>
 
         <div class="action-bar">
             <div>
-                <span id="route-name" style="font-weight:bold; font-size:1.1rem;">Seleccione una ruta</span>
-                <span id="live-counter" class="counter-badge" style="display:none; margin-left:10px;">0/0</span>
+                <span id="route-name" style="font-weight:bold;">Cargar Excel</span>
+                <span id="live-counter" class="counter-badge" style="display:none; margin-left:8px;">0/0</span>
             </div>
-            <div style="display:flex; gap:10px;">
-                <button class="btn btn-pdf" id="btn-pdf" style="display:none" onclick="generatePDF()">📄 Exportar PDF</button>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-pdf" id="btn-pdf" style="display:none" onclick="generatePDF()">📄 PDF</button>
                 <button class="btn btn-finish" id="btn-finish" style="display:none" onclick="saveAttendance()">✅ Finalizar</button>
             </div>
         </div>
@@ -113,8 +120,8 @@
 
         <div id="history-section">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <strong>Historial de hoy:</strong>
-                <button class="btn btn-danger" onclick="clearAllData()">Borrar Historial</button>
+                <strong id="hist-title">Historial (0 registros):</strong>
+                <button class="btn btn-danger" onclick="clearAllData()">Limpiar</button>
             </div>
             <div id="log-list" style="margin-top:10px;"></div>
         </div>
@@ -124,7 +131,8 @@
         const { jsPDF } = window.jspdf;
         let fullData = {};
         let currentSheet = "";
-        let attendanceHistory = JSON.parse(localStorage.getItem('attendance_history_v4') || "[]");
+        // Usamos una clave nueva para evitar conflictos de versiones previas
+        let attendanceHistory = JSON.parse(localStorage.getItem('attendance_history_v5') || "[]");
 
         window.onload = () => {
             const savedData = localStorage.getItem('rutas_data');
@@ -137,17 +145,22 @@
 
         document.getElementById('upload').addEventListener('change', function(e) {
             const file = e.target.files[0];
+            if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                fullData = {};
-                workbook.SheetNames.forEach(name => {
-                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[name], { range: 2 });
-                    if (json.length > 0) fullData[name] = json;
-                });
-                localStorage.setItem('rutas_data', JSON.stringify(fullData));
-                initInterface();
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    fullData = {};
+                    workbook.SheetNames.forEach(name => {
+                        const json = XLSX.utils.sheet_to_json(workbook.Sheets[name], { range: 2 });
+                        if (json.length > 0) fullData[name] = json;
+                    });
+                    localStorage.setItem('rutas_data', JSON.stringify(fullData));
+                    initInterface();
+                } catch (err) {
+                    alert("Error al leer el Excel. Verifica el formato.");
+                }
             };
             reader.readAsArrayBuffer(file);
         });
@@ -155,7 +168,10 @@
         function initInterface() {
             const tabsContainer = document.getElementById('tabs-container');
             tabsContainer.innerHTML = '';
-            Object.keys(fullData).forEach((name, index) => {
+            const sheets = Object.keys(fullData);
+            if(sheets.length === 0) return;
+
+            sheets.forEach((name, index) => {
                 const btn = document.createElement('button');
                 btn.className = `tab-button ${index === 0 ? 'active' : ''}`;
                 if(index === 0) currentSheet = name;
@@ -163,6 +179,7 @@
                 btn.onclick = () => switchTab(name, btn);
                 tabsContainer.appendChild(btn);
             });
+            
             document.getElementById('search').disabled = false;
             document.getElementById('btn-finish').style.display = 'block';
             document.getElementById('btn-pdf').style.display = 'block';
@@ -175,13 +192,13 @@
             btn.classList.add('active');
             currentSheet = name;
             renderTable();
+            document.getElementById('search').value = "";
         }
 
         function updateCounter() {
-            const total = fullData[currentSheet].length;
+            const total = fullData[currentSheet] ? fullData[currentSheet].length : 0;
             const present = document.querySelectorAll('#table-body tr.present').length;
-            const badge = document.getElementById('live-counter');
-            badge.innerText = `${present}/${total}`;
+            document.getElementById('live-counter').innerText = `${present}/${total}`;
             document.getElementById('route-name').innerText = currentSheet;
         }
 
@@ -190,7 +207,7 @@
             const headerRow = document.getElementById('table-header');
             const body = document.getElementById('table-body');
             
-            headerRow.innerHTML = '<th class="check-col">Asistió</th>';
+            headerRow.innerHTML = '<th class="check-col">Ok</th>';
             body.innerHTML = '';
             if (!data || data.length === 0) return;
 
@@ -230,11 +247,19 @@
 
         function saveAttendance() {
             const checkedRows = document.querySelectorAll('#table-body tr.present');
+            
+            // CORRECCIÓN 1: Validar que haya al menos un niño
+            if (checkedRows.length === 0) {
+                alert("⚠️ ERROR: No has marcado a ningún niño. Debe haber al menos 1 asistencia para finalizar.");
+                return;
+            }
+
             const asistentes = Array.from(checkedRows).map(tr => JSON.parse(tr.dataset.info));
             const totalInSheet = fullData[currentSheet].length;
             const now = new Date();
             
             const session = {
+                id: Date.now(), // ID único para evitar bugs
                 fecha: now.toLocaleDateString(),
                 hora: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                 ruta: currentSheet,
@@ -243,12 +268,12 @@
             };
 
             attendanceHistory.push(session);
-            localStorage.setItem('attendance_history_v4', JSON.stringify(attendanceHistory));
+            localStorage.setItem('attendance_history_v5', JSON.stringify(attendanceHistory));
             
-            alert(`Guardado: ${session.conteo} niños en la ruta ${currentSheet}`);
+            alert(`✅ Guardado Correcto: ${session.conteo} alumnos.`);
             renderHistory();
             
-            // Reset
+            // Limpiar selección
             document.querySelectorAll('.att-check').forEach(c => c.checked = false);
             document.querySelectorAll('#table-body tr').forEach(tr => tr.classList.remove('present'));
             updateCounter();
@@ -256,49 +281,61 @@
 
         function generatePDF() {
             if (attendanceHistory.length === 0) {
-                alert("No hay datos para exportar.");
+                alert("No hay registros para generar PDF.");
                 return;
             }
 
-            const doc = new jsPDF({ orientation: 'landscape' });
-            doc.setFontSize(16);
-            doc.text("REPORTE DE ASISTENCIA - RUTAS 2026", 14, 15);
-            
-            let yPos = 25;
-
-            attendanceHistory.forEach((session) => {
-                doc.setFontSize(11);
-                doc.setTextColor(0);
-                doc.text(`RUTA: ${session.ruta} | FECHA: ${session.fecha} | ASISTENCIA: ${session.conteo}`, 14, yPos);
+            try {
+                // CORRECCIÓN 2: Configuración para evitar bugs en mobile
+                const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
                 
-                const columns = Object.keys(session.asistentes[0]);
-                const rows = session.asistentes.map(a => columns.map(col => a[col] || ""));
+                attendanceHistory.forEach((session, index) => {
+                    if (index > 0) doc.addPage();
+                    
+                    doc.setFontSize(14);
+                    doc.setTextColor(40);
+                    doc.text(`REPORTE: ${session.ruta}`, 14, 15);
+                    doc.setFontSize(10);
+                    doc.text(`Fecha: ${session.fecha} | Hora: ${session.hora} | Asistencia: ${session.conteo}`, 14, 22);
+                    
+                    const columns = Object.keys(session.asistentes[0]);
+                    const rows = session.asistentes.map(a => columns.map(col => String(a[col] || "")));
 
-                doc.autoTable({
-                    startY: yPos + 4,
-                    head: [columns],
-                    body: rows,
-                    theme: 'grid',
-                    styles: { fontSize: 7 },
-                    headStyles: { fillStyle: [37, 99, 235] }
+                    doc.autoTable({
+                        startY: 28,
+                        head: [columns],
+                        body: rows,
+                        theme: 'grid',
+                        styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak' },
+                        headStyles: { fillStyle: [37, 99, 235], textColor: 255 },
+                        margin: { left: 10, right: 10 }
+                    });
                 });
 
-                yPos = doc.lastAutoTable.finalY + 12;
-                if (yPos > 180) { doc.addPage(); yPos = 20; }
-            });
-
-            doc.save(`Reporte_Rutas_${new Date().toLocaleDateString()}.pdf`);
+                // Descarga segura
+                doc.save(`Asistencia_Rutas_${Date.now()}.pdf`);
+            } catch (err) {
+                console.error(err);
+                alert("Error generando el PDF. Intenta con menos registros o refresca la página.");
+            }
         }
 
         function renderHistory() {
             const container = document.getElementById('log-list');
             container.innerHTML = '';
+            document.getElementById('hist-title').innerText = `Historial (${attendanceHistory.length} registros):`;
+            
             attendanceHistory.slice().reverse().forEach(s => {
                 const div = document.createElement('div');
                 div.className = 'history-item';
                 div.innerHTML = `
-                    <span><strong>${s.fecha} ${s.hora}</strong> - ${s.ruta}</span>
-                    <span style="color:var(--primary); font-weight:bold;">${s.conteo} presentes</span>
+                    <div>
+                        <strong>${s.ruta}</strong><br>
+                        <small>${s.fecha} - ${s.hora}</small>
+                    </div>
+                    <div style="text-align:right">
+                        <span style="color:var(--primary); font-weight:bold;">${s.conteo}</span>
+                    </div>
                 `;
                 container.appendChild(div);
             });
@@ -306,6 +343,7 @@
 
         document.getElementById('search').addEventListener('input', function(e) {
             const term = e.target.value.toLowerCase();
+            if(!fullData[currentSheet]) return;
             const filtered = fullData[currentSheet].filter(row => 
                 Object.values(row).some(v => String(v).toLowerCase().includes(term))
             );
@@ -313,8 +351,8 @@
         });
 
         function clearAllData() {
-            if(confirm("¿Borrar historial?")) {
-                localStorage.removeItem('attendance_history_v4');
+            if(confirm("¿Borrar todos los registros guardados?")) {
+                localStorage.removeItem('attendance_history_v5');
                 attendanceHistory = [];
                 renderHistory();
             }
