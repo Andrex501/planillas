@@ -46,6 +46,7 @@
             font-size: 16px; 
             width: 100%; 
             box-sizing: border-box; 
+            outline: none;
         }
 
         .action-bar {
@@ -176,6 +177,9 @@
         let fullData = {};
         let currentSheet = "";
         let attendanceHistory = JSON.parse(localStorage.getItem('attendance_history_v8') || "[]");
+        
+        // --- CORRECCIÓN: Objeto para guardar marcas temporales ---
+        let markedAttendance = {}; // Guardará { "Ruta 1": [indices marcados] }
 
         window.onload = () => {
             const saved = localStorage.getItem('rutas_data');
@@ -188,9 +192,13 @@
             reader.onload = function(e) {
                 const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
                 fullData = {};
+                markedAttendance = {}; // Reiniciar marcas al cargar nuevo archivo
                 workbook.SheetNames.forEach(n => {
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[n], { range: 2 });
-                    if (json.length > 0) fullData[n] = json;
+                    if (json.length > 0) {
+                        fullData[n] = json;
+                        markedAttendance[n] = new Set(); // Preparar set de marcas por ruta
+                    }
                 });
                 localStorage.setItem('rutas_data', JSON.stringify(fullData));
                 initInterface();
@@ -202,6 +210,7 @@
             const container = document.getElementById('tabs-container');
             container.innerHTML = '';
             Object.keys(fullData).forEach((n, i) => {
+                if (!markedAttendance[n]) markedAttendance[n] = new Set();
                 const b = document.createElement('button');
                 b.className = `tab-button ${i === 0 ? 'active' : ''}`;
                 if(i === 0) currentSheet = n;
@@ -210,6 +219,7 @@
                     document.querySelectorAll('.tab-button').forEach(x => x.classList.remove('active'));
                     b.classList.add('active');
                     currentSheet = n;
+                    document.getElementById('search').value = ''; // Limpiar búsqueda al cambiar pestaña
                     renderTable();
                 };
                 container.appendChild(b);
@@ -221,7 +231,7 @@
 
         function updateCounter() {
             const total = fullData[currentSheet] ? fullData[currentSheet].length : 0;
-            const present = document.querySelectorAll('#table-body tr.present').length;
+            const present = markedAttendance[currentSheet] ? markedAttendance[currentSheet].size : 0;
             document.getElementById('live-counter').innerText = `${present}/${total}`;
             document.getElementById('route-name').innerText = currentSheet;
         }
@@ -237,28 +247,41 @@
             const cols = Object.keys(data[0]);
             cols.forEach(c => header.innerHTML += `<th>${c}</th>`);
 
-            data.forEach(row => {
+            data.forEach((row) => {
+                // CORRECCIÓN: Identificar la fila por su contenido original (JSON string)
+                const rowId = JSON.stringify(row);
+                const isChecked = markedAttendance[currentSheet].has(rowId);
+
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td><input type="checkbox" class="att-check"></td>` + 
+                if (isChecked) tr.classList.add('present');
+
+                tr.innerHTML = `<td><input type="checkbox" class="att-check" ${isChecked ? 'checked' : ''}></td>` + 
                                cols.map(c => `<td>${row[c] || ''}</td>`).join('');
+                
                 tr.onclick = (e) => {
-                    if(e.target.type !== 'checkbox') tr.querySelector('input').checked = !tr.querySelector('input').checked;
-                    tr.classList.toggle('present', tr.querySelector('input').checked);
+                    const cb = tr.querySelector('input');
+                    if(e.target.type !== 'checkbox') cb.checked = !cb.checked;
+                    
+                    if (cb.checked) {
+                        tr.classList.add('present');
+                        markedAttendance[currentSheet].add(rowId);
+                    } else {
+                        tr.classList.remove('present');
+                        markedAttendance[currentSheet].delete(rowId);
+                    }
                     updateCounter();
                 };
-                tr.dataset.info = JSON.stringify(row);
                 body.appendChild(tr);
             });
             updateCounter();
         }
 
         function saveAttendance() {
-            const checked = document.querySelectorAll('#table-body tr.present');
+            const selectedSet = markedAttendance[currentSheet];
             const btn = document.getElementById('btn-finish');
 
-            if (checked.length === 0) return alert("Marca al menos un niño.");
+            if (!selectedSet || selectedSet.size === 0) return alert("Marca al menos un niño.");
             
-            // DESACTIVAR BOTÓN temporalmente para evitar doble envío
             btn.disabled = true;
             
             const now = new Date();
@@ -266,8 +289,8 @@
                 fecha: now.toLocaleDateString(),
                 hora: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 ruta: currentSheet,
-                conteo: `${checked.length}/${fullData[currentSheet].length}`,
-                asistentes: Array.from(checked).map(tr => JSON.parse(tr.dataset.info))
+                conteo: `${selectedSet.size}/${fullData[currentSheet].length}`,
+                asistentes: Array.from(selectedSet).map(str => JSON.parse(str))
             };
 
             attendanceHistory.push(session);
@@ -275,24 +298,26 @@
             
             alert(`✅ Ruta ${currentSheet} guardada con éxito.`);
             
-            // LIMPIAR TABLA (Remover marcas)
-            renderTable(); // Al re-renderizar la tabla actual, se borran los estados "present"
+            // LIMPIAR MARCAS de esta ruta específica después de guardar
+            markedAttendance[currentSheet].clear();
+            document.getElementById('search').value = '';
+            renderTable();
             renderHistory();
 
-            // REACTIVAR BOTÓN después de un momento
             setTimeout(() => { btn.disabled = false; }, 2000);
         }
 
         function generatePDF() {
             if (attendanceHistory.length === 0) return alert("Sin datos registrados hoy.");
-            const doc = new jsPDF({ orientation: 'landscape' });
+            // Configuramos PDF Vertical en tamaño Oficio (Legal) como pediste antes
+            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'legal' });
             
             attendanceHistory.forEach((s, i) => {
                 if (i > 0) doc.addPage();
                 doc.setFontSize(16);
                 doc.setTextColor(37, 99, 235);
                 doc.text(`RUTA: ${s.ruta}`, 14, 15);
-                doc.setFontSize(11);
+                doc.setFontSize(10);
                 doc.setTextColor(80);
                 doc.text(`FINALIZADO: ${s.fecha} - ${s.hora} | ASISTENCIA: ${s.conteo}`, 14, 22);
                 
@@ -304,7 +329,7 @@
                     head: [cols],
                     body: rows,
                     theme: 'grid',
-                    styles: { fontSize: 7 },
+                    styles: { fontSize: 6.5 },
                     headStyles: { fillStyle: [37, 99, 235] }
                 });
             });
@@ -322,6 +347,7 @@
             });
         }
 
+        // --- CORRECCIÓN EN EL BUSCADOR ---
         document.getElementById('search').addEventListener('input', function(e) {
             const term = e.target.value.toLowerCase();
             const filtered = fullData[currentSheet].filter(row => 
