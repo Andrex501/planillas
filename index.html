@@ -3,13 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Rutas 2026</title>
+    <title>Control de Asistencia Pro 2026</title>
     
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
     <style>
         :root {
             --primary: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
             --bg: #f1f5f9;
             --card: #ffffff;
             --text: #0f172a;
@@ -21,146 +25,84 @@
             color: var(--text);
             margin: 0;
             padding: 10px;
-            display: flex;
-            justify-content: center;
         }
 
         .container {
             width: 100%;
-            max-width: 1200px;
+            max-width: 1300px;
+            margin: auto;
             background: var(--card);
             padding: 15px;
             border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
 
-        h2 { text-align: center; font-size: 1.5rem; margin-bottom: 20px; }
-
-        /* Controles Adaptables */
-        .controls {
+        .action-bar {
             display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        @media (min-width: 640px) {
-            .controls { flex-direction: row; align-items: center; }
-        }
-
-        input[type="file"] {
-            font-size: 14px;
-            width: 100%;
-        }
-
-        input[type="text"] {
-            padding: 12px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 16px; /* Evita zoom automático en iOS */
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        /* Pestañas Responsive */
-        .tabs-container {
-            display: flex;
-            gap: 5px;
-            overflow-x: auto;
-            border-bottom: 2px solid var(--primary);
-            padding-bottom: 0;
-            margin-bottom: 10px;
-            -webkit-overflow-scrolling: touch; /* Scroll suave en móvil */
-        }
-
-        .tabs-container::-webkit-scrollbar { height: 4px; }
-
-        .tab-button {
-            padding: 10px 15px;
-            cursor: pointer;
-            border: 1px solid #e2e8f0;
-            border-bottom: none;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 15px;
             background: #f8fafc;
-            border-radius: 8px 8px 0 0;
-            white-space: nowrap;
-            font-size: 13px;
-            font-weight: 600;
+            border-radius: 8px;
+            border-left: 5px solid var(--primary);
         }
 
-        .tab-button.active {
+        .counter-badge {
             background: var(--primary);
             color: white;
-            border-color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
         }
 
-        /* Tabla Responsive */
-        .table-wrapper {
-            overflow-x: auto;
-            border: 1px solid #e2e8f0;
-            border-radius: 0 0 8px 8px;
-            max-height: 70vh;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-
-        th {
-            background: #f8fafc;
-            position: sticky;
-            top: 0;
-            padding: 12px 10px;
-            text-align: left;
-            border-bottom: 2px solid #e2e8f0;
-            z-index: 10;
-        }
-
-        td {
-            padding: 10px;
-            border-bottom: 1px solid #f1f5f9;
-            white-space: nowrap;
-        }
-
-        tr:nth-child(even) { background: #fdfdfd; }
-
-        #result-count {
-            font-size: 12px;
-            color: #64748b;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        /* Botón para limpiar cache */
-        .clear-btn {
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 11px;
-            margin-left: auto;
-        }
+        /* ... (estilos anteriores se mantienen igual) ... */
+        .controls { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+        @media (min-width: 640px) { .controls { flex-direction: row; align-items: center; } }
+        input[type="text"] { padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px; flex-grow: 1; }
+        .btn { border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
+        .btn-finish { background: var(--success); }
+        .btn-pdf { background: #6366f1; }
+        .btn-danger { background: var(--danger); font-size: 11px; padding: 5px 10px; }
+        .tabs-container { display: flex; gap: 5px; overflow-x: auto; border-bottom: 2px solid var(--primary); margin-bottom: 10px; }
+        .tab-button { padding: 10px 15px; cursor: pointer; border: 1px solid #e2e8f0; border-bottom: none; background: #f8fafc; border-radius: 8px 8px 0 0; white-space: nowrap; font-weight: 600; }
+        .tab-button.active { background: var(--primary); color: white; }
+        .table-wrapper { overflow-x: auto; max-height: 55vh; border: 1px solid #e2e8f0; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+        th { background: #f8fafc; position: sticky; top: 0; z-index: 10; }
+        .check-col { width: 45px; text-align: center; }
+        input[type="checkbox"] { transform: scale(1.6); cursor: pointer; }
+        .present { background-color: #f0fdf4 !important; }
+        #history-section { margin-top: 20px; padding-top: 15px; border-top: 2px dashed #e2e8f0; }
+        .history-item { background: #fff; padding: 8px; border: 1px solid #e2e8f0; margin-bottom: 5px; border-radius: 4px; display: flex; justify-content: space-between; font-size: 12px; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>Rutas Escolares 2026</h2>
+        <h2 style="text-align:center; margin-top:0;">Asistencia Rutas Escolares 2026</h2>
         
         <div class="controls">
             <input type="file" id="upload" accept=".xlsx, .xls">
-            <input type="text" id="search" placeholder="🔍 Buscar nombre o documento..." disabled>
-        </div>
-
-        <div style="display: flex; align-items: center;">
-            <div id="result-count">Cargue un archivo para empezar</div>
-            <button class="clear-btn" onclick="clearCache()" id="btn-clear" style="display:none;">Borrar Datos</button>
+            <input type="text" id="search" placeholder="🔍 Buscar por nombre, grado o documento..." disabled>
         </div>
 
         <div id="tabs-container" class="tabs-container"></div>
+
+        <div class="action-bar">
+            <div>
+                <span id="route-name" style="font-weight:bold; font-size:1.1rem;">Seleccione una ruta</span>
+                <span id="live-counter" class="counter-badge" style="display:none; margin-left:10px;">0/0</span>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-pdf" id="btn-pdf" style="display:none" onclick="generatePDF()">📄 Exportar PDF</button>
+                <button class="btn btn-finish" id="btn-finish" style="display:none" onclick="saveAttendance()">✅ Finalizar</button>
+            </div>
+        </div>
 
         <div class="table-wrapper">
             <table id="data-table">
@@ -168,38 +110,42 @@
                 <tbody id="table-body"></tbody>
             </table>
         </div>
+
+        <div id="history-section">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong>Historial de hoy:</strong>
+                <button class="btn btn-danger" onclick="clearAllData()">Borrar Historial</button>
+            </div>
+            <div id="log-list" style="margin-top:10px;"></div>
+        </div>
     </div>
 
     <script>
+        const { jsPDF } = window.jspdf;
         let fullData = {};
         let currentSheet = "";
+        let attendanceHistory = JSON.parse(localStorage.getItem('attendance_history_v4') || "[]");
 
-        // Al cargar la página, revisar si hay datos en Cache
         window.onload = () => {
             const savedData = localStorage.getItem('rutas_data');
             if (savedData) {
                 fullData = JSON.parse(savedData);
                 initInterface();
+                renderHistory();
             }
         };
 
         document.getElementById('upload').addEventListener('change', function(e) {
             const file = e.target.files[0];
-            if (!file) return;
-
             const reader = new FileReader();
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
-                
                 fullData = {};
                 workbook.SheetNames.forEach(name => {
-                    const ws = workbook.Sheets[name];
-                    const json = XLSX.utils.sheet_to_json(ws, { range: 2 });
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[name], { range: 2 });
                     if (json.length > 0) fullData[name] = json;
                 });
-
-                // Guardar en Cache (localStorage)
                 localStorage.setItem('rutas_data', JSON.stringify(fullData));
                 initInterface();
             };
@@ -209,22 +155,18 @@
         function initInterface() {
             const tabsContainer = document.getElementById('tabs-container');
             tabsContainer.innerHTML = '';
-            const sheetNames = Object.keys(fullData);
-
-            sheetNames.forEach((name, index) => {
+            Object.keys(fullData).forEach((name, index) => {
                 const btn = document.createElement('button');
-                btn.classList.add('tab-button');
-                if (index === 0) {
-                    btn.classList.add('active');
-                    currentSheet = name;
-                }
+                btn.className = `tab-button ${index === 0 ? 'active' : ''}`;
+                if(index === 0) currentSheet = name;
                 btn.innerText = name;
                 btn.onclick = () => switchTab(name, btn);
                 tabsContainer.appendChild(btn);
             });
-
             document.getElementById('search').disabled = false;
-            document.getElementById('btn-clear').style.display = 'block';
+            document.getElementById('btn-finish').style.display = 'block';
+            document.getElementById('btn-pdf').style.display = 'block';
+            document.getElementById('live-counter').style.display = 'inline-block';
             renderTable();
         }
 
@@ -232,19 +174,24 @@
             document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentSheet = name;
-            document.getElementById('search').value = '';
             renderTable();
+        }
+
+        function updateCounter() {
+            const total = fullData[currentSheet].length;
+            const present = document.querySelectorAll('#table-body tr.present').length;
+            const badge = document.getElementById('live-counter');
+            badge.innerText = `${present}/${total}`;
+            document.getElementById('route-name').innerText = currentSheet;
         }
 
         function renderTable(dataToRender = null) {
             const data = dataToRender || fullData[currentSheet];
             const headerRow = document.getElementById('table-header');
             const body = document.getElementById('table-body');
-            const countLabel = document.getElementById('result-count');
-
-            headerRow.innerHTML = '';
+            
+            headerRow.innerHTML = '<th class="check-col">Asistió</th>';
             body.innerHTML = '';
-
             if (!data || data.length === 0) return;
 
             const cols = Object.keys(data[0]);
@@ -254,17 +201,107 @@
                 headerRow.appendChild(th);
             });
 
-            data.forEach(row => {
+            data.forEach((row) => {
                 const tr = document.createElement('tr');
+                const tdCheck = document.createElement('td');
+                tdCheck.className = 'check-col';
+                tdCheck.innerHTML = `<input type="checkbox" class="att-check">`;
+                tr.appendChild(tdCheck);
+
                 cols.forEach(c => {
                     const td = document.createElement('td');
                     td.innerText = row[c] || "";
                     tr.appendChild(td);
                 });
+
+                tr.onclick = (e) => {
+                    if(e.target.type !== 'checkbox') {
+                        const cb = tr.querySelector('input');
+                        cb.checked = !cb.checked;
+                    }
+                    tr.classList.toggle('present', tr.querySelector('input').checked);
+                    updateCounter();
+                };
+                tr.dataset.info = JSON.stringify(row);
                 body.appendChild(tr);
             });
+            updateCounter();
+        }
 
-            countLabel.innerText = `${currentSheet}: ${data.length} personas`;
+        function saveAttendance() {
+            const checkedRows = document.querySelectorAll('#table-body tr.present');
+            const asistentes = Array.from(checkedRows).map(tr => JSON.parse(tr.dataset.info));
+            const totalInSheet = fullData[currentSheet].length;
+            const now = new Date();
+            
+            const session = {
+                fecha: now.toLocaleDateString(),
+                hora: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                ruta: currentSheet,
+                conteo: `${asistentes.length}/${totalInSheet}`,
+                asistentes: asistentes
+            };
+
+            attendanceHistory.push(session);
+            localStorage.setItem('attendance_history_v4', JSON.stringify(attendanceHistory));
+            
+            alert(`Guardado: ${session.conteo} niños en la ruta ${currentSheet}`);
+            renderHistory();
+            
+            // Reset
+            document.querySelectorAll('.att-check').forEach(c => c.checked = false);
+            document.querySelectorAll('#table-body tr').forEach(tr => tr.classList.remove('present'));
+            updateCounter();
+        }
+
+        function generatePDF() {
+            if (attendanceHistory.length === 0) {
+                alert("No hay datos para exportar.");
+                return;
+            }
+
+            const doc = new jsPDF({ orientation: 'landscape' });
+            doc.setFontSize(16);
+            doc.text("REPORTE DE ASISTENCIA - RUTAS 2026", 14, 15);
+            
+            let yPos = 25;
+
+            attendanceHistory.forEach((session) => {
+                doc.setFontSize(11);
+                doc.setTextColor(0);
+                doc.text(`RUTA: ${session.ruta} | FECHA: ${session.fecha} | ASISTENCIA: ${session.conteo}`, 14, yPos);
+                
+                const columns = Object.keys(session.asistentes[0]);
+                const rows = session.asistentes.map(a => columns.map(col => a[col] || ""));
+
+                doc.autoTable({
+                    startY: yPos + 4,
+                    head: [columns],
+                    body: rows,
+                    theme: 'grid',
+                    styles: { fontSize: 7 },
+                    headStyles: { fillStyle: [37, 99, 235] }
+                });
+
+                yPos = doc.lastAutoTable.finalY + 12;
+                if (yPos > 180) { doc.addPage(); yPos = 20; }
+            });
+
+            doc.save(`Reporte_Rutas_${new Date().toLocaleDateString()}.pdf`);
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('log-list');
+            container.innerHTML = '';
+            attendanceHistory.slice().reverse().forEach(s => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `
+                    <span><strong>${s.fecha} ${s.hora}</strong> - ${s.ruta}</span>
+                    <span style="color:var(--primary); font-weight:bold;">${s.conteo} presentes</span>
+                `;
+                container.appendChild(div);
+            });
         }
 
         document.getElementById('search').addEventListener('input', function(e) {
@@ -275,10 +312,11 @@
             renderTable(filtered);
         });
 
-        function clearCache() {
-            if (confirm("¿Deseas borrar los datos guardados?")) {
-                localStorage.removeItem('rutas_data');
-                location.reload();
+        function clearAllData() {
+            if(confirm("¿Borrar historial?")) {
+                localStorage.removeItem('attendance_history_v4');
+                attendanceHistory = [];
+                renderHistory();
             }
         }
     </script>
